@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nandy QR Coder</title>
+<meta name="description" content="Make QR codes for links, Wi-Fi, contacts and more, right in your browser.">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #1b1c1f;
+  --card: #25272b;
+  --text: #ececee;
+  --muted: #a0a3ab;
+  --border: #383b41;
+  --accent: #8b87ff;
+  --accent-text: #15161a;
+  --accent-soft: #2f3136;
+  --danger: #ff8a80;
+  --shadow: none;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Header */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.brand-logo {
+  display: block;
+  height: 44px;
+  width: auto;
+  padding: 4px 10px;
+  background: #ffffff;
+  border-radius: 10px;
+}
+
+.brand-title { font-weight: 700; font-size: 1.1rem; }
+
+/* Intro */
+.intro { padding: 32px 0 20px; }
+.intro h1 { margin: 0 0 6px; font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.2; }
+.intro p { margin: 0; color: var(--muted); }
+
+/* Layout */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-bottom: 32px;
+}
+
+.stack { display: grid; gap: 20px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.card h2 { margin: 0 0 14px; font-size: 1.1rem; }
+
+.preview-card { position: sticky; top: 16px; }
+
+/* Form */
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.panel .field:last-child,
+.card > .field:last-child { margin-bottom: 0; }
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+label { font-weight: 600; font-size: 0.9rem; }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+textarea { resize: vertical; }
+
+input[type="color"] {
+  width: 100%;
+  height: 42px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+input[type="file"] { font: inherit; font-size: 0.9rem; color: var(--muted); max-width: 100%; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.hint { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.card > .hint { margin: -8px 0 14px; }
+
+.inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Buttons */
+.btn {
+  appearance: none;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn.primary {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 6px 10px; font-size: 0.85rem; }
+
+.buttons { display: flex; gap: 10px; }
+.buttons .primary { flex: 1; padding: 13px 16px; font-size: 1rem; }
+
+/* Preview */
+.preview {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 16px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+}
+
+.placeholder { margin: 0; color: var(--muted); text-align: center; }
+
+#qr-output canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 8px;
+}
+
+.status {
+  min-height: 1.5em;
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.status.error { color: var(--danger); }
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Footer */
+.site-footer { padding-bottom: 32px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+/* Small screens */
+@media (max-width: 860px) {
+  .grid { grid-template-columns: 1fr; }
+  .preview-card { position: static; }
+}
+
+@media (max-width: 440px) {
+  .row { grid-template-columns: 1fr; gap: 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <div class="brand">
+        <img class="brand-logo" src="nandy-banner.png" alt="Nandy" height="44">
+        <span class="brand-title">QR Coder</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="intro">
+      <h1>Create a QR code</h1>
+      <p>Pick a type, fill in the details, style it and download it.</p>
+    </section>
+
+    <div class="grid">
+      <form id="qr-form" class="stack" novalidate>
+
+        <!-- 1. Content -->
+        <div class="card">
+          <h2>For?</h2>
+
+          <div class="field">
+            <label for="qr-type">QR Code Type</label>
+            <select id="qr-type">
+              <option value="text">Plain Text</option>
+              <option value="url" selected>Website URL</option>
+              <option value="wifi">Wi-Fi login</option>
+              <option value="vcard">Contact Card</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone Number</option>
+              <option value="sms">SMS Message</option>
+              <option value="location">Location (Map Pin)</option>
+            </select>
+          </div>
+
+          <div class="panel" data-panel="text">
+            <div class="field">
+              <label for="text-input">Text</label>
+              <textarea id="text-input" rows="4" placeholder="Type anything here"></textarea>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="url">
+            <div class="field">
+              <label for="url-input">Website Address</label>
+              <input id="url-input" type="text" inputmode="url" placeholder="example.com" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="panel" data-panel="wifi">
+            <div class="field">
+              <label for="wifi-ssid">Network Name</label>
+              <input id="wifi-ssid" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="wifi-password">Password</label>
+              <input id="wifi-password" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="wifi-security">Security</label>
+              <select id="wifi-security">
+                <option value="WPA">WPA / WPA2 / WPA3</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">No password</option>
+              </select>
+            </div>
+            <label class="check"><input id="wifi-hidden" type="checkbox"> Hidden Network</label>
+          </div>
+
+          <div class="panel" data-panel="vcard">
+            <div class="row">
+              <div class="field">
+                <label for="vc-first">First Name</label>
+                <input id="vc-first" type="text" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="vc-last">Last Name</label>
+                <input id="vc-last" type="text" autocomplete="off">
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="vc-phone">Phone</label>
+                <input id="vc-phone" type="tel" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="vc-email">Email</label>
+                <input id="vc-email" type="email" autocomplete="off">
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="vc-org">Company</label>
+                <input id="vc-org" type="text" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="vc-url">Website</label>
+                <input id="vc-url" type="text" autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="email">
+            <div class="field">
+              <label for="mail-to">Send to:</label>
+              <input id="mail-to" type="email" placeholder="name@example.com" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="mail-subject">Subject (optional)</label>
+              <input id="mail-subject" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="mail-body">Message (optional)</label>
+              <textarea id="mail-body" rows="3"></textarea>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="phone">
+            <div class="field">
+              <label for="phone-number">Phone Number</label>
+              <input id="phone-number" type="tel" placeholder="+233 20 000 0000" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="panel" data-panel="sms">
+            <div class="field">
+              <label for="sms-number">Phone Number</label>
+              <input id="sms-number" type="tel" placeholder="+233 20 000 0000" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="sms-message">Message (optional)</label>
+              <textarea id="sms-message" rows="3"></textarea>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="location">
+            <div class="row">
+              <div class="field">
+                <label for="geo-lat">Latitude</label>
+                <input id="geo-lat" type="text" inputmode="decimal" placeholder="5.6037" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="geo-lng">Longitude</label>
+                <input id="geo-lng" type="text" inputmode="decimal" placeholder="-0.1870" autocomplete="off">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Style -->
+        <div class="card">
+          <h2>Style?</h2>
+          <p class="hint">Changes apply when you hit Generate!</p>
+
+          <div class="row">
+            <div class="field">
+              <label for="fg-color">QR Color</label>
+              <input id="fg-color" type="color" value="#000000">
+            </div>
+            <div class="field">
+              <label for="bg-color">Background</label>
+              <input id="bg-color" type="color" value="#ffffff">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="dot-style">Dot style</label>
+              <select id="dot-style">
+                <option value="square">Square</option>
+                <option value="dots">Dots</option>
+                <option value="rounded">Rounded</option>
+                <option value="extra-rounded">Extra Rounded</option>
+                <option value="classy">Classy</option>
+                <option value="classy-rounded">Classy Rounded</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="corner-style">Corner style</label>
+              <select id="corner-style">
+                <option value="square">Square</option>
+                <option value="rounded">Rounded</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="ecc">Error correction</label>
+              <select id="ecc">
+                <option value="L">Low (7%)</option>
+                <option value="M" selected>Medium (15%)</option>
+                <option value="Q">Quartile (25%)</option>
+                <option value="H">High (30%)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="size">Size: <output id="size-value" for="size">300 px</output></label>
+              <input id="size" type="range" min="150" max="800" step="10" value="300">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="logo-input">Logo in the Center (optional)</label>
+            <input id="logo-input" type="file" accept="image/*">
+            <div class="inline">
+              <button type="button" id="logo-remove" class="btn small" hidden>Remove logo</button>
+              <span id="logo-hint" class="hint"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button type="submit" class="btn primary">Generate</button>
+          <button type="button" id="clear-btn" class="btn">Clear</button>
+        </div>
+      </form>
+
+      <!-- Preview and downloads -->
+      <aside class="card preview-card" id="preview-card">
+        <h2>Your QR Code</h2>
+        <div class="preview">
+          <p id="placeholder" class="placeholder">Your QR code will be here.</p>
+          <div id="qr-output"></div>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="btn" id="dl-png" disabled>Download PNG</button>
+          <button type="button" class="btn" id="dl-svg" disabled>Download SVG</button>
+          <button type="button" class="btn" id="dl-pdf" disabled>Download PDF</button>
+          <button type="button" class="btn" id="copy-btn" disabled>Copy Image</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="wrap site-footer">
+    <p>This is a product of nandy tech tools Collection.</p>
+  </footer>
+
+  <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var val = function (id) { return $(id).value.trim(); };
+
+  var qr = null;        // the current QR code
+  var logoData = null;  // the chosen logo, as a data URL
+
+  /* ---------- Show the form for the chosen type ---------- */
+
+  var typeSelect = $("qr-type");
+  var panels = document.querySelectorAll("[data-panel]");
+
+  function showPanel() {
+    for (var i = 0; i < panels.length; i++) {
+      panels[i].hidden = panels[i].getAttribute("data-panel") !== typeSelect.value;
+    }
+  }
+
+  typeSelect.addEventListener("change", showPanel);
+  showPanel();
+
+  /* ---------- Turn the form into the text stored in the QR code ---------- */
+
+  function escapeWifi(s) { return String(s).replace(/([\\;,:"])/g, "\\$1"); }
+
+  function escapeVcard(s) {
+    return String(s)
+      .replace(/\\/g, "\\\\")
+      .replace(/\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+  }
+
+  var builders = {
+    text: function () {
+      var t = $("text-input").value.trim();
+      if (!t) return { error: "Please type some text." };
+      return { data: t };
+    },
+
+    url: function () {
+      var u = val("url-input");
+      if (!u) return { error: "Please enter a website address." };
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = "https://" + u;
+      return { data: u };
+    },
+
+    wifi: function () {
+      var ssid = val("wifi-ssid");
+      var security = $("wifi-security").value;
+      var pass = $("wifi-password").value;
+      if (!ssid) return { error: "Please enter the Wi-Fi network name." };
+      if (security !== "nopass" && !pass) return { error: "Please enter the Wi-Fi password." };
+      var out = "WIFI:T:" + security + ";S:" + escapeWifi(ssid) + ";";
+      if (security !== "nopass") out += "P:" + escapeWifi(pass) + ";";
+      if ($("wifi-hidden").checked) out += "H:true;";
+      return { data: out + ";" };
+    },
+
+    vcard: function () {
+      var first = val("vc-first");
+      var last = val("vc-last");
+      if (!first && !last) return { error: "Please enter a first or last name." };
+      var lines = [
+        "BEGIN:VCARD",
+        "VERSION:3.0",
+        "N:" + escapeVcard(last) + ";" + escapeVcard(first) + ";;;",
+        "FN:" + escapeVcard((first + " " + last).trim())
+      ];
+      if (val("vc-org")) lines.push("ORG:" + escapeVcard(val("vc-org")));
+      if (val("vc-phone")) lines.push("TEL;TYPE=CELL:" + val("vc-phone"));
+      if (val("vc-email")) lines.push("EMAIL:" + val("vc-email"));
+      if (val("vc-url")) lines.push("URL:" + val("vc-url"));
+      lines.push("END:VCARD");
+      return { data: lines.join("\n") };
+    },
+
+    email: function () {
+      var to = val("mail-to");
+      if (!to) return { error: "Please enter an email address." };
+      var parts = [];
+      if (val("mail-subject")) parts.push("subject=" + encodeURIComponent(val("mail-subject")));
+      if (val("mail-body")) parts.push("body=" + encodeURIComponent(val("mail-body")));
+      return { data: "mailto:" + to + (parts.length ? "?" + parts.join("&") : "") };
+    },
+
+    phone: function () {
+      var n = val("phone-number").replace(/[\s()\-]/g, "");
+      if (!n) return { error: "Please enter a phone number." };
+      return { data: "tel:" + n };
+    },
+
+    sms: function () {
+      var n = val("sms-number").replace(/[\s()\-]/g, "");
+      if (!n) return { error: "Please enter a phone number." };
+      var msg = val("sms-message");
+      return { data: "sms:" + n + (msg ? "?body=" + encodeURIComponent(msg) : "") };
+    },
+
+    location: function () {
+      var lat = parseFloat(val("geo-lat"));
+      var lng = parseFloat(val("geo-lng"));
+      if (!isFinite(lat) || !isFinite(lng)) return { error: "Please enter both latitude and longitude as numbers." };
+      if (lat < -90 || lat > 90) return { error: "Latitude must be between -90 and 90." };
+      if (lng < -180 || lng > 180) return { error: "Longitude must be between -180 and 180." };
+      return { data: "geo:" + lat + "," + lng };
+    }
+  };
+
+  /* ---------- Style options ---------- */
+
+  function buildOptions(data) {
+    var size = parseInt($("size").value, 10);
+    var fg = $("fg-color").value;
+    var rounded = $("corner-style").value === "rounded";
+
+    return {
+      width: size,
+      height: size,
+      type: "canvas",
+      data: data,
+      margin: 10,
+      image: logoData || undefined,
+      qrOptions: { errorCorrectionLevel: $("ecc").value },
+      dotsOptions: { color: fg, type: $("dot-style").value },
+      cornersSquareOptions: { color: fg, type: rounded ? "extra-rounded" : "square" },
+      cornersDotOptions: { color: fg, type: rounded ? "dot" : "square" },
+      backgroundOptions: { color: $("bg-color").value },
+      imageOptions: { crossOrigin: "anonymous", margin: 6, imageSize: 0.3 }
+    };
+  }
+
+  /* ---------- Small helpers ---------- */
+
+  var statusEl = $("status");
+  var actionButtons = ["dl-png", "dl-svg", "dl-pdf", "copy-btn"];
+
+  function say(message, isError) {
+    statusEl.textContent = message || "";
+    statusEl.className = "status" + (isError ? " error" : "");
+  }
+
+  function setActions(enabled) {
+    for (var i = 0; i < actionButtons.length; i++) {
+      $(actionButtons[i]).disabled = !enabled;
+    }
+  }
+
+  /* ---------- Generate ---------- */
+
+  $("qr-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (typeof QRCodeStyling === "undefined") {
+      say("The QR library could not load. Check your internet connection and refresh.", true);
+      return;
+    }
+
+    var result = builders[typeSelect.value]();
+    if (result.error) {
+      say(result.error, true);
+      return;
+    }
+
+    var output = $("qr-output");
+    try {
+      output.innerHTML = "";
+      qr = new QRCodeStyling(buildOptions(result.data));
+      qr.append(output);
+    } catch (e) {
+      qr = null;
+      output.innerHTML = "";
+      $("placeholder").hidden = false;
+      setActions(false);
+      say("That is too much information for one QR code. Try something shorter.", true);
+      return;
+    }
+
+    $("placeholder").hidden = true;
+    setActions(true);
+    say("Your QR code is ready.");
+
+    if (window.matchMedia("(max-width: 860px)").matches) {
+      $("preview-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  /* ---------- Size slider ---------- */
+
+  function paintSize() { $("size-value").textContent = $("size").value + " px"; }
+  $("size").addEventListener("input", paintSize);
+  paintSize();
+
+  /* ---------- Logo ---------- */
+
+  var logoHint = $("logo-hint");
+  var logoRemove = $("logo-remove");
+
+  function clearLogo() {
+    logoData = null;
+    $("logo-input").value = "";
+    logoRemove.hidden = true;
+    logoHint.textContent = "";
+  }
+
+  $("logo-input").addEventListener("change", function () {
+    var file = this.files && this.files[0];
+    if (!file) { clearLogo(); return; }
+
+    if (file.type.indexOf("image/") !== 0) {
+      clearLogo();
+      logoHint.textContent = "Please choose an image file.";
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      logoData = reader.result;
+      logoRemove.hidden = false;
+      $("ecc").value = "H"; // high error correction keeps the code scannable with a logo on top
+      logoHint.textContent = "Error correction set to High so the code still scans.";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  logoRemove.addEventListener("click", clearLogo);
+
+  /* ---------- Downloads ---------- */
+
+  $("dl-png").addEventListener("click", function () {
+    if (qr) qr.download({ name: "nandy-qr-code", extension: "png" });
+  });
+
+  $("dl-svg").addEventListener("click", function () {
+    if (qr) qr.download({ name: "nandy-qr-code", extension: "svg" });
+  });
+
+  $("dl-pdf").addEventListener("click", function () {
+    if (!qr) return;
+    if (!window.jspdf) {
+      say("The PDF tool could not load. Check your internet connection and refresh.", true);
+      return;
+    }
+    qr.getRawData("png").then(function (blob) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+        var side = 100; // QR code is 100 mm wide on an A4 page (210 mm wide)
+        pdf.addImage(reader.result, "PNG", (210 - side) / 2, 40, side, side);
+        pdf.save("nandy-qr-code.pdf");
+      };
+      reader.readAsDataURL(blob);
+    });
+  });
+
+  /* ---------- Copy to clipboard ---------- */
+
+  $("copy-btn").addEventListener("click", function () {
+    if (!qr) return;
+    if (!navigator.clipboard || !window.ClipboardItem) {
+      say("Your browser cannot copy images. Please use Download PNG instead.", true);
+      return;
+    }
+    var item = new ClipboardItem({ "image/png": qr.getRawData("png") });
+    navigator.clipboard.write([item]).then(function () {
+      say("Copied. You can paste it into a chat or document.");
+    }).catch(function () {
+      say("Copying did not work here. Please use Download PNG instead.", true);
+    });
+  });
+
+  /* ---------- Clear ---------- */
+
+  $("clear-btn").addEventListener("click", function () {
+    $("qr-form").reset();
+    clearLogo();
+    showPanel();
+    paintSize();
+    qr = null;
+    $("qr-output").innerHTML = "";
+    $("placeholder").hidden = false;
+    setActions(false);
+    say("");
+  });
+})();
+  </script>
+</body>
+</html>
